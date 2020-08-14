@@ -1,4 +1,5 @@
 const WalletConnect = require("../../packages/clients/client").default;
+const uuid = require("uuid");
 
 /**
  * Check WalletConnect state.
@@ -173,8 +174,9 @@ class HealthChecker {
    */
   async start() {
     this.startedAt = new Date();
+    let url = "https://testbridge.walletconnect.org/?token="+uuid.v4();
     this.initiator = this.createConnector({
-      bridge: "https://testbridge.walletconnect.org",
+      bridge: url,
     });
     this.initiator.on("display_uri", (err, payload) => {
       this.onDisplayURI(err, payload);
