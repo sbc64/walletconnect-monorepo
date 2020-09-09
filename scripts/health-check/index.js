@@ -1,8 +1,16 @@
 const { checkHealth } = require("./healthcheck");
 
+defaultLogger = (message, objectStatus) => {
+  if (!process.env.STRESS_TEST) {
+    console.log(message, objectStatus);
+  }
+};
+
 async function run() {
   // eslint-disable-next-line no-console
-  const result = await checkHealth(5000, console.log);
+  //var uri = process.argv.slice(2);
+  var uri = "https://testbridge.walletconnect.org";
+  const result = await checkHealth(5000, defaultLogger, uri);
 
   if (result.alive) {
     // eslint-disable-next-line no-console

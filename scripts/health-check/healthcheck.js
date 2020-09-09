@@ -14,10 +14,12 @@ class HealthChecker {
    * @param timeout Check timeout in milliseconds
    * @param onFinish Callback then the check is finished, one way or another
    */
-  constructor(timeout, onFinish, log) {
+  constructor(timeout, onFinish, log, bridgeURI) {
     this.timeout = timeout;
     this.onFinish = onFinish;
     this.log = log;
+    bridgeURI = typeof bridgeURI !== "undefined" ? bridgeURI : "https://bridge.walletconnect.org";
+    this.uri = bridgeURI;
   }
 
   /**
@@ -174,9 +176,8 @@ class HealthChecker {
    */
   async start() {
     this.startedAt = new Date();
-    let url = "https://testbridge.walletconnect.org/?token="+uuid.v4();
     this.initiator = this.createConnector({
-      bridge: url,
+      bridge: this.uri + "/?token=" + uuid.v4(),
     });
     this.initiator.on("display_uri", (err, payload) => {
       this.onDisplayURI(err, payload);
@@ -196,9 +197,9 @@ class HealthChecker {
    *
    * @param timeout Timeout in milliseconds
    */
-  static async run(timeout, log) {
+  static async run(timeout, log, uri) {
     const checker = new Promise(resolve => {
-      const checker = new HealthChecker(timeout, resolve, log);
+      const checker = new HealthChecker(timeout, resolve, log, uri);
       checker.start();
     });
 
@@ -216,8 +217,8 @@ class HealthChecker {
   }
 }
 
-async function checkHealth(timeout, log) {
-  const result = await HealthChecker.run(timeout, log);
+async function checkHealth(timeout, log, uri) {
+  const result = await HealthChecker.run(timeout, log, uri);
   return result;
 }
 

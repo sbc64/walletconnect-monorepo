@@ -2,6 +2,7 @@ FROM node:12-slim
 # docker build -f Dockerfile -t sebohe/wcstress .
 
 RUN apt update && apt install git -y
+RUN update-ca-certificates
 WORKDIR /app
 ENV PATH /app/node_modules/.bin/:$PATH
 
