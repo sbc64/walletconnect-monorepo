@@ -18,7 +18,6 @@ class HealthChecker {
     this.timeout = timeout;
     this.onFinish = onFinish;
     this.log = log;
-    bridgeURI = typeof bridgeURI !== "undefined" ? bridgeURI : "https://bridge.walletconnect.org";
     this.uri = bridgeURI;
   }
 

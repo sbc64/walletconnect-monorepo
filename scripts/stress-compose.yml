@@ -1,0 +1,5 @@
+version: "3"
+services:
+  healthcheck:
+    image: sebohe/wcstress:latest
+    restart: always
