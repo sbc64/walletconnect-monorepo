@@ -29,7 +29,7 @@ async function run() {
 }
 
 tasks = [];
-for (let i = 0; i < 1; i++) {
+for (let i = 0; i < 20; i++) {
   tasks.push(run());
 }
 
