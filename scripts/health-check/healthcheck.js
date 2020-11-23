@@ -81,7 +81,7 @@ class HealthChecker {
    */
   connectToSession(uri) {
     // eslint-disable-next-line no-console
-    console.log("Connecting to session", uri);
+    //console.log("Connecting to session", uri);
 
     // For joining, we give URI instead of a bridge server
     this.responder = this.createConnector({ uri });

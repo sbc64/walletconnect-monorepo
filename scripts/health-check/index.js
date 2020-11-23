@@ -7,13 +7,13 @@ defaultLogger = (message, objectStatus) => {
 };
 
 async function run() {
-  let uri
+  let uri;
   try {
     uri = process.argv.slice(2)[0];
   } catch {}
   uri = uri == undefined ? "https://bridge.walletconnect.org" : uri;
-  console.log("Using bridge:", uri)
-  const result = await checkHealth(20000, defaultLogger, uri);
+  console.log("Using bridge:", uri);
+  const result = await checkHealth(5000, defaultLogger, uri);
 
   if (result.alive) {
     // eslint-disable-next-line no-console
