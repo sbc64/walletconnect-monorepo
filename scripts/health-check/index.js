@@ -12,7 +12,9 @@ async function run() {
     uri = process.argv.slice(2)[0];
   } catch {}
   uri = uri == undefined ? "https://bridge.walletconnect.org" : uri;
-  console.log("Using bridge:", uri);
+  if (!process.env.STRESS_TEST) {
+    console.log("Using bridge:", uri);
+  }
   const result = await checkHealth(5000, defaultLogger, uri);
 
   if (result.alive) {
@@ -29,7 +31,7 @@ async function run() {
 }
 
 tasks = [];
-for (let i = 0; i < 20; i++) {
+for (let i = 0; i < 1; i++) {
   tasks.push(run());
 }
 
