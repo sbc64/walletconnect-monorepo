@@ -30,7 +30,7 @@ import {
   parseTransactionData,
   convertArrayBufferToHex,
   convertHexToArrayBuffer,
-  getMeta,
+  getClientMeta,
   payloadId,
   uuid,
   formatRpcError,
@@ -113,7 +113,7 @@ class Connector implements IConnector {
   // -- constructor ----------------------------------------------------- //
 
   constructor(opts: IConnectorOpts) {
-    this._clientMeta = getMeta() || opts.connectorOpts.clientMeta || null;
+    this._clientMeta = getClientMeta() || opts.connectorOpts.clientMeta || null;
     this._cryptoLib = opts.cryptoLib;
     this._sessionStorage = opts.sessionStorage || new SessionStorage();
     this._qrcodeModal = opts.connectorOpts.qrcodeModal;
@@ -144,6 +144,8 @@ class Connector implements IConnector {
     this._transport =
       opts.transport ||
       new SocketTransport({
+        protocol: this.protocol,
+        version: this.version,
         url: this.bridge,
         subscriptions: [this.clientId],
       });
@@ -223,7 +225,7 @@ class Connector implements IConnector {
   get clientMeta() {
     let clientMeta: IClientMeta | null = this._clientMeta;
     if (!clientMeta) {
-      clientMeta = this._clientMeta = getMeta();
+      clientMeta = this._clientMeta = getClientMeta();
     }
     return clientMeta;
   }
@@ -413,25 +415,21 @@ class Connector implements IConnector {
     }
   }
 
-  public connect(opts?: ICreateSessionOptions): Promise<ISessionStatus> {
+  public async connect(opts?: ICreateSessionOptions): Promise<ISessionStatus> {
     if (!this._qrcodeModal) {
       throw new Error(ERROR_QRCODE_MODAL_NOT_PROVIDED);
     }
-    return new Promise(async (resolve, reject) => {
-      if (this.connected) {
-        resolve({
-          chainId: this.chainId,
-          accounts: this.accounts,
-        });
-      }
-      if (!this.connected) {
-        try {
-          await this.createSession(opts);
-        } catch (error) {
-          reject(error);
-        }
-      }
 
+    if (this.connected) {
+      return {
+        chainId: this.chainId,
+        accounts: this.accounts,
+      };
+    }
+
+    await this.createSession(opts);
+
+    return new Promise<ISessionStatus>(async (resolve, reject) => {
       this.on("modal_closed", () => reject(new Error(ERROR_QRCODE_MODAL_USER_CLOSED)));
 
       this.on("connect", (error, payload) => {
@@ -803,6 +801,12 @@ class Connector implements IConnector {
 
   protected _sendCallRequest(request: IJsonRpcRequest, options?: IRequestOptions): Promise<any> {
     this._sendRequest(request, options);
+
+    this._eventManager.trigger({
+      event: "call_request_sent",
+      params: [{ request, options }],
+    });
+
     if (isMobile() && signingMethods.includes(request.method)) {
       const mobileLinkUrl = getLocal(mobileLinkChoiceKey);
       if (mobileLinkUrl) {
@@ -865,6 +869,12 @@ class Connector implements IConnector {
     }
     if (this._connected) {
       this._connected = false;
+    }
+    if (this._handshakeId) {
+      this._handshakeId = 0;
+    }
+    if (this._handshakeTopic) {
+      this._handshakeTopic = "";
     }
     this._eventManager.trigger({
       event: "disconnect",
@@ -1069,6 +1079,13 @@ class Connector implements IConnector {
 
     this._transport.on("close", () =>
       this._eventManager.trigger({ event: "transport_close", params: [] }),
+    );
+
+    this._transport.on("error", () =>
+      this._eventManager.trigger({
+        event: "transport_error",
+        params: ["Websocket connection failed"],
+      }),
     );
 
     this._transport.open();

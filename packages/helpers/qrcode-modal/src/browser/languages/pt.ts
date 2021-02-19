@@ -1,8 +1,15 @@
-export default {
+import { TextMap } from "../types";
+
+const pt: TextMap = {
   choose_preferred_wallet: "Escolha sua carteira preferida",
   connect_mobile_wallet: "Conectar-se à carteira móvel",
   scan_qrcode_with_wallet: "Ler o código QR com uma carteira compatível com WalletConnect",
-  return_to_mobile_options: "Voltar às opções de carteira móvel",
-  view_qrcode_option: "Ver o código QR",
   connect: "Conectar",
+  // TODO: review following translations
+  qrcode: "Código QR",
+  mobile: "Móvel",
+  copy_to_clipboard: "Copiar",
+  copied_to_clipboard: "Copiado!",
 };
+
+export default pt;

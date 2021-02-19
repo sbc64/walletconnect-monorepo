@@ -99,6 +99,8 @@ declare module "@walletconnect/types" {
   }
 
   export interface ISocketTransportOptions {
+    protocol: string;
+    version: number;
     url: string;
     netMonitor?: INetworkMonitor;
     subscriptions?: string[];
@@ -298,6 +300,7 @@ declare module "@walletconnect/types" {
     qrcode?: boolean;
     chainId?: number;
     qrcodeModalOptions?: IQRCodeModalOptions;
+    clientMeta?: IClientMeta;
   }
 
   export interface IWCEthRpcConnectionOptions extends IWCRpcConnectionOptions {
@@ -328,8 +331,14 @@ declare module "@walletconnect/types" {
   export interface ICreateSessionOptions {
     chainId?: number;
   }
+  export abstract class IEvents {
+    public abstract on(event: string, listener: any): void;
+    public abstract once(event: string, listener: any): void;
+    public abstract off(event: string, listener: any): void;
+    public abstract removeListener(event: string, listener: any): void;
+  }
 
-  export interface IRpcConnection extends NodeJS.EventEmitter {
+  export interface IRpcConnection extends IEvents {
     connected: boolean;
 
     send(payload: any): Promise<any>;
@@ -365,5 +374,12 @@ declare module "@walletconnect/types" {
     logo: string;
     universalLink: string;
     deepLink: string;
+  }
+
+  export type IMobileRegistry = IMobileRegistryEntry[];
+
+  export interface IMobileLinkInfo {
+    name: string;
+    href: string;
   }
 }

@@ -48,6 +48,7 @@ class WalletConnectProvider extends ProviderEngine {
         bridge: this.bridge,
         qrcodeModal: this.qrcode ? QRCodeModal : undefined,
         qrcodeModalOptions: this.qrcodeModalOptions,
+        clientMeta: opts?.clientMeta,
       });
     this.rpc = opts.rpc || null;
     if (
@@ -59,93 +60,7 @@ class WalletConnectProvider extends ProviderEngine {
     this.infuraId = opts.infuraId || "";
     this.chainId = typeof opts.chainId !== "undefined" ? opts.chainId : 1;
     this.networkId = this.chainId;
-    this.updateRpcUrl(this.chainId);
-    this.addProvider(
-      new FixtureSubprovider({
-        eth_hashrate: "0x00",
-        eth_mining: false,
-        eth_syncing: true,
-        net_listening: true,
-        web3_clientVersion: `WalletConnect/v1.x.x/javascript`,
-      }),
-    );
-    this.addProvider(new CacheSubprovider());
-    this.addProvider(new SubscriptionsSubprovider());
-    this.addProvider(new FilterSubprovider());
-    this.addProvider(new NonceSubprovider());
-    this.addProvider(
-      new HookedWalletSubprovider({
-        getAccounts: async (cb: any) => {
-          try {
-            const wc = await this.getWalletConnector();
-            const accounts = wc.accounts;
-            if (accounts && accounts.length) {
-              cb(null, accounts);
-            } else {
-              cb(new Error("Failed to get accounts"));
-            }
-          } catch (error) {
-            cb(error);
-          }
-        },
-        processMessage: async (msgParams: { from: string; data: string }, cb: any) => {
-          try {
-            const wc = await this.getWalletConnector();
-            const result = await wc.signMessage([msgParams.from, msgParams.data]);
-            cb(null, result);
-          } catch (error) {
-            cb(error);
-          }
-        },
-        processPersonalMessage: async (msgParams: { from: string; data: string }, cb: any) => {
-          try {
-            const wc = await this.getWalletConnector();
-            const result = await wc.signPersonalMessage([msgParams.data, msgParams.from]);
-            cb(null, result);
-          } catch (error) {
-            cb(error);
-          }
-        },
-        processSignTransaction: async (txParams: any, cb: any) => {
-          try {
-            const wc = await this.getWalletConnector();
-            const result = await wc.signTransaction(txParams);
-            cb(null, result);
-          } catch (error) {
-            cb(error);
-          }
-        },
-        processTransaction: async (txParams: any, cb: any) => {
-          try {
-            const wc = await this.getWalletConnector();
-            const result = await wc.sendTransaction(txParams);
-            cb(null, result);
-          } catch (error) {
-            cb(error);
-          }
-        },
-        processTypedMessage: async (msgParams: { from: string; data: string }, cb: any) => {
-          try {
-            const wc = await this.getWalletConnector();
-            const result = await wc.signTypedData([msgParams.from, msgParams.data]);
-            cb(null, result);
-          } catch (error) {
-            cb(error);
-          }
-        },
-      }),
-    );
-    this.addProvider({
-      handleRequest: async (payload: IJsonRpcRequest, next: any, end: any) => {
-        try {
-          const { result } = await this.handleRequest(payload);
-          end(null, result);
-        } catch (error) {
-          end(error);
-        }
-      },
-      setEngine: (_: any) => _,
-    });
+    this.initialize();
   }
 
   get isWalletConnect() {
@@ -160,28 +75,24 @@ class WalletConnectProvider extends ProviderEngine {
     return this.wc.peerMeta;
   }
 
-  enable() {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const wc = await this.getWalletConnector();
-        if (wc) {
-          this.start();
-          this.subscribeWalletConnector();
-          resolve(wc.accounts);
-        } else {
-          return reject(new Error("Failed to connect to WalleConnect"));
-        }
-      } catch (error) {
-        return reject(error);
-      }
-    });
-  }
+  // Connect with a wallet and return the addresses of all available
+  // accounts.
+  enable = async (): Promise<string[]> => {
+    const wc = await this.getWalletConnector();
+    if (wc) {
+      this.start();
+      this.subscribeWalletConnector();
+      return wc.accounts;
+    } else {
+      throw new Error("Failed to connect to WalleConnect");
+    }
+  };
 
-  async request(payload: any): Promise<any> {
+  request = async (payload: any): Promise<any> => {
     return this.send(payload);
-  }
+  };
 
-  async send(payload: any, callback?: any): Promise<any> {
+  send = async (payload: any, callback?: any): Promise<any> => {
     // Web3 1.0 beta.38 (and above) calls `send` with method and parameters
     if (typeof payload === "string") {
       const method = payload;
@@ -209,17 +120,17 @@ class WalletConnectProvider extends ProviderEngine {
     }
 
     return this.sendAsyncPromise(payload.method, payload.params);
-  }
+  };
 
-  onConnect(callback: any) {
+  onConnect = (callback: any) => {
     this.connectCallbacks.push(callback);
-  }
+  };
 
-  triggerConnect(result: any) {
+  triggerConnect = (result: any) => {
     if (this.connectCallbacks && this.connectCallbacks.length) {
       this.connectCallbacks.forEach(callback => callback(result));
     }
-  }
+  };
 
   async disconnect() {
     this.close();
@@ -442,6 +353,98 @@ class WalletConnectProvider extends ProviderEngine {
         },
       );
     });
+  }
+
+  private initialize() {
+    this.updateRpcUrl(this.chainId);
+    this.addProvider(
+      new FixtureSubprovider({
+        eth_hashrate: "0x00",
+        eth_mining: false,
+        eth_syncing: true,
+        net_listening: true,
+        web3_clientVersion: `WalletConnect/v1.x.x/javascript`,
+      }),
+    );
+    this.addProvider(new CacheSubprovider());
+    this.addProvider(new SubscriptionsSubprovider());
+    this.addProvider(new FilterSubprovider());
+    this.addProvider(new NonceSubprovider());
+    this.addProvider(new HookedWalletSubprovider(this.configWallet()));
+    this.addProvider({
+      handleRequest: async (payload: IJsonRpcRequest, next: any, end: any) => {
+        try {
+          const { result } = await this.handleRequest(payload);
+          end(null, result);
+        } catch (error) {
+          end(error);
+        }
+      },
+      setEngine: (_: any) => _,
+    });
+  }
+
+  private configWallet() {
+    return {
+      getAccounts: async (cb: any) => {
+        try {
+          const wc = await this.getWalletConnector();
+          const accounts = wc.accounts;
+          if (accounts && accounts.length) {
+            cb(null, accounts);
+          } else {
+            cb(new Error("Failed to get accounts"));
+          }
+        } catch (error) {
+          cb(error);
+        }
+      },
+      processMessage: async (msgParams: { from: string; data: string }, cb: any) => {
+        try {
+          const wc = await this.getWalletConnector();
+          const result = await wc.signMessage([msgParams.from, msgParams.data]);
+          cb(null, result);
+        } catch (error) {
+          cb(error);
+        }
+      },
+      processPersonalMessage: async (msgParams: { from: string; data: string }, cb: any) => {
+        try {
+          const wc = await this.getWalletConnector();
+          const result = await wc.signPersonalMessage([msgParams.data, msgParams.from]);
+          cb(null, result);
+        } catch (error) {
+          cb(error);
+        }
+      },
+      processSignTransaction: async (txParams: any, cb: any) => {
+        try {
+          const wc = await this.getWalletConnector();
+          const result = await wc.signTransaction(txParams);
+          cb(null, result);
+        } catch (error) {
+          cb(error);
+        }
+      },
+      processTransaction: async (txParams: any, cb: any) => {
+        try {
+          const wc = await this.getWalletConnector();
+          const result = await wc.sendTransaction(txParams);
+          cb(null, result);
+        } catch (error) {
+          cb(error);
+        }
+      },
+      processTypedMessage: async (msgParams: { from: string; data: string }, cb: any) => {
+        try {
+          const wc = await this.getWalletConnector();
+          const result = await wc.signTypedData([msgParams.from, msgParams.data]);
+          cb(null, result);
+        } catch (error) {
+          cb(error);
+        }
+      },
+    };
   }
 }
 
