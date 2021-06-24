@@ -174,7 +174,9 @@ class HealthChecker {
   async start() {
     this.startedAt = new Date();
     this.initiator = this.createConnector({
+      //bridge: "https://bridge.walletconnect.org",
       bridge: "https://bridge.walletconnect.org",
+      //bridge: "https://localhost",
     });
     this.initiator.on("display_uri", (err, payload) => {
       this.onDisplayURI(err, payload);

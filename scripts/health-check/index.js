@@ -2,7 +2,7 @@ const { checkHealth } = require("./healthcheck");
 
 async function run() {
   // eslint-disable-next-line no-console
-  const result = await checkHealth(5000, console.log);
+  const result = await checkHealth(10000, console.log);
 
   if (result.alive) {
     // eslint-disable-next-line no-console

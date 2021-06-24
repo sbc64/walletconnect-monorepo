@@ -137,7 +137,9 @@ class SocketTransport implements ITransportLib {
 
     const url = getWebSocketUrl(this._url, this._protocol, this._version);
 
-    this._nextSocket = new WS(url);
+    this._nextSocket = new WS(url, {
+      rejectUnauthorized: false, // Allows for self signed certs
+    });
 
     if (!this._nextSocket) {
       throw new Error("Failed to create socket");
