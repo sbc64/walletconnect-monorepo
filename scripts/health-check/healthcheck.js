@@ -1,4 +1,5 @@
 const WalletConnect = require("../../packages/clients/client").default;
+const uuid = require("uuid");
 
 /**
  * Check WalletConnect state.
@@ -13,10 +14,11 @@ class HealthChecker {
    * @param timeout Check timeout in milliseconds
    * @param onFinish Callback then the check is finished, one way or another
    */
-  constructor(timeout, onFinish, log) {
+  constructor(timeout, onFinish, log, bridgeURI) {
     this.timeout = timeout;
     this.onFinish = onFinish;
     this.log = log;
+    this.uri = bridgeURI;
   }
 
   /**
@@ -79,7 +81,7 @@ class HealthChecker {
    */
   connectToSession(uri) {
     // eslint-disable-next-line no-console
-    console.log("Connecting to session", uri);
+    //console.log("Connecting to session", uri);
 
     // For joining, we give URI instead of a bridge server
     this.responder = this.createConnector({ uri });
@@ -174,9 +176,7 @@ class HealthChecker {
   async start() {
     this.startedAt = new Date();
     this.initiator = this.createConnector({
-      //bridge: "https://bridge.walletconnect.org",
-      bridge: "https://bridge.walletconnect.org",
-      //bridge: "https://localhost",
+      bridge: this.uri,
     });
     this.initiator.on("display_uri", (err, payload) => {
       this.onDisplayURI(err, payload);
@@ -196,9 +196,9 @@ class HealthChecker {
    *
    * @param timeout Timeout in milliseconds
    */
-  static async run(timeout, log) {
+  static async run(timeout, log, uri) {
     const checker = new Promise(resolve => {
-      const checker = new HealthChecker(timeout, resolve, log);
+      const checker = new HealthChecker(timeout, resolve, log, uri);
       checker.start();
     });
 
@@ -216,8 +216,8 @@ class HealthChecker {
   }
 }
 
-async function checkHealth(timeout, log) {
-  const result = await HealthChecker.run(timeout, log);
+async function checkHealth(timeout, log, uri) {
+  const result = await HealthChecker.run(timeout, log, uri);
   return result;
 }
 
